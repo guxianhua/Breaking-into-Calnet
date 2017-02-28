@@ -1,0 +1,11 @@
+For this, I realized that the bufsize is 6560.
+
+It starts at 0xbfffddc0.
+
+I also find out that the sfp is at 0xbffff768.
+
+This leaves me with 6572 bytes to write in until i get to the jmp address.
+
+The jmp address needs to be overwritten with "0x08048c1c" since it is 3 more than "0x08048619".
+
+Therfore my strategy is to pass in 6572 "NOP", "\x1c\x86\x04\x08", and then the shell.
